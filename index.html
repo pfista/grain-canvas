@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+/* Root variables */
+:root {
+    --layer-max: 10;
+}
+
+/* Container styling */
+.container {
+    position: relative;
+    display: inline-block;
+}
+
+/* Image styling */
+.container img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+/* Grain canvas styling */
+.grain-canvas {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: var(--layer-max);
+    animation: grainFadeIn 2s ease-out 1s forwards;
+}
+
+.grain-canvas canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Grain fade-in animation */
+@keyframes grainFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 0.1;
+    }
+}
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://picsum.photos/200/300" alt="Image" />
+        <div class="grain-canvas" data-ready="true">
+            <canvas></canvas>
+        </div>
+    </div>
+    <script>
+      window.onload = function() {
+            const canvas = document.querySelector('.grain-canvas canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Create an offscreen canvas for grain generation
+            const grainCanvas = document.createElement('canvas');
+            const grainCtx = grainCanvas.getContext('2d');
+
+            // Set canvas dimensions considering device pixel ratio
+            function setCanvasSize() {
+                const devicePixelRatio = Math.min(window.devicePixelRatio, 2) || 1;
+
+                // Get the size of the visible canvas
+                const width = canvas.offsetWidth;
+                const height = canvas.offsetHeight;
+
+                // Set dimensions for the visible canvas
+                canvas.width = width * devicePixelRatio;
+                canvas.height = height * devicePixelRatio;
+                canvas.style.width = `${width}px`;
+                canvas.style.height = `${height}px`;
+
+                // Set dimensions for the offscreen grain canvas
+                grainCanvas.width = canvas.width;
+                grainCanvas.height = canvas.height;
+
+                // Generate grain on the offscreen canvas
+                generateGrain();
+            }
+
+            setCanvasSize();
+
+            // Generate grain on the offscreen canvas
+            function generateGrain() {
+                const width = grainCanvas.width;
+                const height = grainCanvas.height;
+                const imageData = grainCtx.createImageData(width, height);
+                const buffer32 = new Uint32Array(imageData.data.buffer);
+                const length = buffer32.length;
+
+                for (let i = 0; i < length; i++) {
+                    if (Math.random() < 0.3) {
+                        buffer32[i] = 0xff000000; // White pixel with full alpha
+                    } else {
+                        buffer32[i] = 0x00000000; // Transparent pixel
+                    }
+                }
+
+                grainCtx.putImageData(imageData, 0, 0);
+            }
+
+            // Animate grain at specified FPS
+            const fps = 24;
+            const interval = 1000 / fps;
+            let then = Date.now();
+
+            function animateGrain() {
+                requestAnimationFrame(animateGrain);
+                const now = Date.now();
+                const elapsed = now - then;
+
+                if (elapsed > interval) {
+                    then = now - (elapsed % interval);
+
+                    // Clear the visible canvas
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    // Draw the grain image onto the visible canvas with random offsets
+                    const xOffset = -400 * Math.random();
+                    const yOffset = -400 * Math.random();
+                    const width = canvas.width + 400;
+                    const height = canvas.height + 400;
+
+                    ctx.drawImage(grainCanvas, xOffset, yOffset, width, height);
+                }
+            }
+
+            animateGrain();
+
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                setCanvasSize();
+            });
+        };
+    </script>
+  </body>
+</html>
